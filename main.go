@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	stringEncode()
+	//alphaDecode()
+	// lsbDecode()
 	stringDecode()
 }
 
@@ -203,7 +204,7 @@ func stringDecode() {
 	}
 
 	rect := img.Bounds()
-	bits := make([]byte, rect.Dx()*rect.Dy()*4)
+	bits := make([]byte, rect.Dx()*rect.Dy()*3)
 	for y := 0; y < rect.Dy(); y++ {
 		for x := 0; x < rect.Dx(); x++ {
 			r, g, b, _ := img.At(x, y).RGBA()
