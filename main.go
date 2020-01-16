@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
@@ -9,7 +10,6 @@ import (
 )
 
 func main() {
-	lsbDecode()
 }
 
 func loadPNG(name string) (image.Image, error) {
@@ -138,4 +138,95 @@ func lsbDecode() {
 		}
 	}
 	savePNG("lsb_decode.png", newImg)
+}
+
+func stringEncode() {
+	data := []byte("🍣")
+	e := base64.StdEncoding.EncodeToString(data)
+	encBytes := []byte(e)
+	bitLength := uint32(len(encBytes) * 8)
+	bits := make([]byte, 32+bitLength)
+
+	// 最初の32bitにデータ長を保存する
+	for i := 0; i < 32; i++ {
+		bit := byte(bitLength << i >> 31)
+		bits[i] = bit
+	}
+	// データを保存
+	for i := 0; i < len(encBytes); i++ {
+		byteData := encBytes[i]
+		for j := 0; j < 8; j++ {
+			bit := byteData << j >> 7
+			bits[32+i*8+j] = bit
+		}
+	}
+
+	coverImg, err := loadPNG("cover.png")
+	if err != nil {
+		fmt.Println(err)
+	}
+	rect := coverImg.Bounds()
+	if (rect.Dx() * rect.Dy() * 4) < (32 + len(bits)) {
+		fmt.Println("保存可能な容量を超えます")
+	}
+
+	newImg := image.NewRGBA(image.Rectangle{rect.Min, rect.Max})
+	i := 0
+	for y := 0; y < rect.Dy(); y++ {
+		for x := 0; x < rect.Dx(); x++ {
+			r, g, b, a := coverImg.At(x, y).RGBA()
+			newRed, newGreen, newBlue := uint8(r), uint8(g), uint8(b)
+			if i < len(bits) {
+				newRed = newRed&0xfe + bits[i]
+				i++
+			}
+			if i < len(bits) {
+				newGreen = newGreen&0xfe + bits[i]
+				i++
+			}
+			if i < len(bits) {
+				newBlue = newBlue&0xfe + bits[i]
+				i++
+			}
+			newImg.SetRGBA(x, y, color.RGBA{newRed, newGreen, newBlue, uint8(a)})
+		}
+	}
+	savePNG("string_encode.png", newImg)
+}
+
+func stringDecode() {
+	img, err := loadPNG("string_encode.png")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	rect := img.Bounds()
+	bits := make([]byte, rect.Dx()*rect.Dy()*4)
+	for y := 0; y < rect.Dy(); y++ {
+		for x := 0; x < rect.Dx(); x++ {
+			r, g, b, _ := img.At(x, y).RGBA()
+			bits[y*rect.Dx()+x*3] = byte(r) & 0x01
+			bits[y*rect.Dx()+x*3+1] = byte(g) & 0x01
+			bits[y*rect.Dx()+x*3+2] = byte(b) & 0x01
+		}
+	}
+	lengthBits := bits[:32]
+	var length uint32
+	for i := 0; i < len(lengthBits); i++ {
+		length += uint32(lengthBits[i]) << (31 - i)
+	}
+	dataBits := bits[32 : length+32]
+	dataBytes := make([]byte, length/8)
+	for i := 0; i < len(dataBytes); i++ {
+		var dataByte uint8
+		for j := 0; j < 8; j++ {
+			dataByte += dataBits[i*8+j] << (7 - j)
+		}
+		dataBytes[i] = dataByte
+	}
+	decBytes, err := base64.StdEncoding.DecodeString(string(dataBytes))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(decBytes))
 }
