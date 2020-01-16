@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	stringEncode()
+	stringDecode()
 }
 
 func loadPNG(name string) (image.Image, error) {
@@ -141,7 +143,7 @@ func lsbDecode() {
 }
 
 func stringEncode() {
-	data := []byte("🍣")
+	data := []byte("Hello, World!🌍🤗🍣🍖🍕🍺")
 	e := base64.StdEncoding.EncodeToString(data)
 	encBytes := []byte(e)
 	bitLength := uint32(len(encBytes) * 8)
